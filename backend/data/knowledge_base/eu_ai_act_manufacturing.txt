@@ -1,0 +1,9 @@
+The European Union Artificial Intelligence Act (EU AI Act) establishes a legal framework for AI systems within the EU.
+For manufacturing operations, AI systems are primarily categorized under "Minimal Risk" (Article 6).
+Quality control and defect detection systems that do not interact with consumers, manipulate human behavior, or act as safety components in critical infrastructure fall under this category.
+These systems can be deployed without mandatory conformity assessments, though voluntary codes of conduct are encouraged.
+
+However, if an AI system in manufacturing is used as a safety component for machinery (regulated under the Machinery Directive 2006/42/EC), it may be classified as "High-Risk" under Annex III.
+High-Risk AI systems require strict compliance with Risk Management (Article 9), Data Governance (Article 10), Technical Documentation (Article 11), Transparency (Article 13), Human Oversight (Article 14), and a robust Quality Management System (Article 17).
+Compliance deadlines for high-risk systems are set for August 2026.
+Manufacturers must ensure that AI systems detecting defects in parts that could compromise the final product's structural safety (e.g., automotive braking components) undergo rigorous conformity assessments before market deployment.

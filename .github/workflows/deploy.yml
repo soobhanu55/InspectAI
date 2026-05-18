@@ -1,0 +1,32 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install huggingface_hub
+      - run: |
+          python -c "
+          from huggingface_hub import HfApi
+          api = HfApi(token='${{ secrets.HF_TOKEN }}')
+          api.upload_folder(
+            folder_path='.',
+            repo_id='${{ secrets.HF_USERNAME }}/fertigungsai',
+            repo_type='space',
+          )
+          "
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+      - run: npm install -g vercel
+      - run: cd frontend && vercel --prod --token=${{ secrets.VERCEL_TOKEN }}

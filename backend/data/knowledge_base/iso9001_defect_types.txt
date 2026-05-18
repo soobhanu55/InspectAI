@@ -1,0 +1,19 @@
+ISO 9001:2015 establishes criteria for a quality management system. In manufacturing, controlling non-conforming outputs is critical (Clause 8.7).
+Visual defect classifications are standardized to ensure consistent quality control.
+Common surface defect types include:
+- Scratches (Kratzer): Linear marks on the surface caused by abrasive contact.
+- Cracks (Haarrisse): Fractures in the material, often invisible to the naked eye without magnification.
+- Dents (Dellen): Surface depressions caused by impact.
+- Porosity (Porosität): Small voids or holes in the material, typical in castings.
+
+Root cause analysis (RCA) is a mandatory requirement for continuous improvement (Clause 10.2). Accepted RCA methods include:
+- 5-Why Analysis: Asking "Why?" multiple times to drill down to the fundamental cause.
+- Ishikawa (Fishbone) Diagram: Categorizing causes into Man, Machine, Material, Method, Measurement, and Environment.
+- FMEA (Failure Mode and Effects Analysis): Proactive evaluation of potential failures.
+
+The corrective action process often follows the 8D (Eight Disciplines) methodology, providing a structured approach to problem-solving.
+Statistical Process Control (SPC) is used to monitor production processes.
+Control chart interpretation is vital:
+- Xbar-R charts: Monitor process mean and variation for continuous data.
+- P-charts: Monitor the proportion of defective items.
+- C-charts: Monitor the number of defects per unit.

@@ -1,0 +1,10 @@
+IATF 16949 is the global technical specification and quality management standard for the automotive industry.
+It strongly emphasizes defect prevention, reduction of variation, and waste reduction in the supply chain.
+
+Key requirements include the Production Part Approval Process (PPAP), which ensures that suppliers understand all engineering design records and specification requirements.
+A Control Plan is mandatory, describing the systems used to minimize process and product variation. It must cover all phases: prototype, pre-launch, and production.
+Measurement System Analysis (MSA) is required to analyze the variation present in measurement and test equipment. Gage R&R (Repeatability and Reproducibility) studies are critical here.
+
+Advanced Product Quality Planning (APQP) phases must be followed to ensure new products satisfy the customer.
+Supplier quality management requires organizations to cascade IATF 16949 requirements down the supply chain.
+Organizations must also adhere to Customer-Specific Requirements (CSRs) from OEMs such as BMW, VW, and Mercedes-Benz, which may dictate specific inspection frequencies, automated optical inspection (AOI) standards, and documentation formats for defect logging.

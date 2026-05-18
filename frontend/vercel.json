@@ -1,0 +1,6 @@
+{
+  "rewrites": [{"source": "/(.*)", "destination": "/"}],
+  "env": {
+    "VITE_API_URL": "https://YOUR-USERNAME-fertigungsai.hf.space"
+  }
+}
