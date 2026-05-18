@@ -1,0 +1,37 @@
+In German manufacturing, identifying the root cause of specific defects is essential for maintaining high OEE (Overall Equipment Effectiveness).
+
+Scratch (Kratzer) Causes:
+- Abrasive contact with handling equipment or conveyor belts.
+- Tool wear in machining centers.
+- Improper manual handling by operators.
+Prevention: Regular maintenance of conveyor guides, implementation of soft-touch handling materials, and strict tool life management.
+
+Crack (Haarriss) Causes:
+- Thermal stress from uneven cooling in casting or forging.
+- Material fatigue due to excessive vibration.
+- Overloading during assembly processes.
+Prevention: Controlled cooling environments, vibration dampening, and calibrated torque tools. Detection often requires dye penetrant or ultrasonic inspection. Cost impact is high.
+
+Dent (Delle) Causes:
+- Excessive fixture pressure during clamping.
+- Handling impacts or drops.
+- Foreign objects in stamping dies.
+Prevention: Calibrated pneumatic clamps, automated handling systems, and clean-die protocols.
+
+Porosity (Porosität) Causes:
+- Gas entrapment during die casting.
+- Incorrect die temperature.
+- Injection speed too high or low.
+Prevention: Optimization of gating design, thermal imaging of dies, and vacuum-assisted casting.
+
+Corrosion (Korrosion) Causes:
+- High ambient humidity in the facility.
+- Chemical exposure from cutting fluids.
+- Surface treatment (e.g., anodizing, plating) failure.
+Prevention: Climate-controlled storage, regular fluid chemistry checks, and strict adherence to plating bath parameters.
+
+Inclusion (Einschluss) Causes:
+- Contamination in raw materials.
+- Material impurity.
+- Die wear flaking into the part.
+Prevention: Raw material certification, melt filtration, and predictive die maintenance.
