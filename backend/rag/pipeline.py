@@ -22,10 +22,11 @@ def get_context(query: str) -> str:
 
 class RAGPipeline:
     def __init__(self):
+        api_key = settings.groq_api_key or "gsk_dummy"
         self.llm = ChatGroq(
             model=settings.groq_model,
             temperature=settings.groq_temperature,
-            api_key=settings.groq_api_key,
+            api_key=api_key,
             streaming=True
         )
         self.system_prompt = """You are a German manufacturing quality assistant. 

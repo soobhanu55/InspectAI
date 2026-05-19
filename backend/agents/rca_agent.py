@@ -26,20 +26,21 @@ Never recommend halting production unless defect severity is HIGH.
 """
 
 def invoke_rca(defect_type: str, machine: str, part_type: str, context: str, severity: str) -> dict:
-    llm = ChatGroq(
-        model=settings.groq_model,
-        temperature=settings.groq_temperature,
-        max_tokens=settings.groq_max_tokens,
-        api_key=settings.groq_api_key
-    )
-    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", f"Defect: {defect_type}\nSeverity: {severity}\nMachine: {machine}\nPart: {part_type}\nContext: {context}")
-    ])
-    
-    chain = prompt | llm
     try:
+        api_key = settings.groq_api_key or "gsk_dummy"
+        llm = ChatGroq(
+            model=settings.groq_model,
+            temperature=settings.groq_temperature,
+            max_tokens=settings.groq_max_tokens,
+            api_key=api_key
+        )
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", SYSTEM_PROMPT),
+            ("human", f"Defect: {defect_type}\nSeverity: {severity}\nMachine: {machine}\nPart: {part_type}\nContext: {context}")
+        ])
+        
+        chain = prompt | llm
         response = chain.invoke({})
         # Parse the JSON response
         # Groq might wrap in markdown ```json
