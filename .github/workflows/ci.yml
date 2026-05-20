@@ -15,7 +15,9 @@ jobs:
       - run: pip install torch==2.5.1+cpu torchvision==0.20.1+cpu --index-url https://download.pytorch.org/whl/cpu
       - run: pip install -r backend/requirements.txt
       - run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords')"
-      - run: pytest backend/tests/ -v --tb=short
+      - name: Run pytest
+        run: |
+          pytest backend/tests/ -v --tb=short > pytest_log.txt 2>&1 || (cat pytest_log.txt && echo '### Pytest Failures' >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && cat pytest_log.txt >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && exit 1)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PYTHONPATH: backend
