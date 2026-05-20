@@ -17,10 +17,20 @@ jobs:
       - run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords')"
       - name: Run pytest
         run: |
-          pytest backend/tests/ -v --tb=short > pytest_log.txt 2>&1 || (cat pytest_log.txt && echo '### Pytest Failures' >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && cat pytest_log.txt >> $GITHUB_STEP_SUMMARY && echo '```' >> $GITHUB_STEP_SUMMARY && exit 1)
+          pytest backend/tests/ -v --tb=short > pytest_log.txt 2>&1
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PYTHONPATH: backend
+
+      - name: Publish Pytest Logs on Failure
+        if: always()
+        run: |
+          if [ -f pytest_log.txt ]; then
+            echo '### Pytest Results' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat pytest_log.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
 
   test-frontend:
     runs-on: ubuntu-latest
