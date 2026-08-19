@@ -24,8 +24,25 @@ Image Upload → FastAPI → YOLOv8n → LangGraph →
 
 ## MLOps Practices Explained
 - **Prometheus Counters/Histograms:** Tracks API latency, inference times, and defect rates in real-time.
-- **RAGAS Integration:** Asynchronous evaluation of the RAG pipeline assessing faithfulness, answer relevancy, and context precision.
+- **RAGAS Integration:** ~~Asynchronous evaluation of the RAG pipeline assessing faithfulness, answer relevancy, and context precision.~~ **Correction:** `backend/mlops/evaluation.py` is currently an empty placeholder (`pass`, with a "Placeholder for RAGAS evaluation" comment) — this was claimed as working before it was, and is corrected here rather than left standing. See "Evaluation" below for what actually is measured.
 - **Structured Logging:** Utilizes `structlog` for predictable, parsable application logs to debug model behavior quickly.
+
+## ⚠️ Honest limitation: the defect detector is not a trained defect model
+
+`backend/vision/detector.py` runs stock YOLOv8n, pretrained on COCO (everyday objects: people, cars, chairs), not fine-tuned on any manufacturing defect dataset. Whatever COCO class it happens to detect gets remapped onto a defect label (scratch/crack/dent/porosity/corrosion/inclusion) via `cls_id % 6` — the label has no real relationship to an actual defect. When the model finds nothing (the common case on real inspection-style images, which look nothing like COCO photos), the code falls back to a **deterministic, hash-based simulated detection**, explicitly marked `"simulated": True` in the return value and documented in-code as "make demos reproducible and impressive without fine-tuning." `test_vision.py`'s only vision test exercises exactly this fallback path on a black image, not real detection accuracy.
+
+This is stated plainly rather than left for someone to discover by reading the source. No accuracy metric is reported for defect detection because there is nothing real to measure yet — fine-tuning on a real dataset (the code's own comment suggests MVTec Anomaly Detection, which is free) is the next real piece of work here, not something already done.
+
+## Evaluation: RAG retrieval (real, local, $0)
+
+Unlike the vision side, the RAG components (`rag/embeddings.py` LocalEmbeddings, `rag/retriever.py` BM25Index, `rag/reranker.py` CrossEncoderReranker) are genuinely real and run entirely locally via sentence-transformers — no external API, no cost. `tests/eval_retrieval.py` measures BM25 vs. local dense embedding retrieval against 20 hand-labeled manufacturing-QC queries over a 20-passage corpus, using the real, unmodified `BM25Index` and `LocalEmbeddings` classes:
+
+```
+BM25            Recall@1=100.0%  Recall@3=100.0%
+Dense (local)   Recall@1=100.0%  Recall@3=100.0%
+```
+
+Both methods hit 100% on this set — worth being honest about what that does and doesn't prove: the 20 QC passages are topically distinct enough (each query has essentially one clearly-correct match) that this particular eval doesn't stress-test the difference between BM25 and dense retrieval the way RAGForge's comparable eval did (where Hybrid actually underperformed Dense). A harder eval with near-duplicate or ambiguous passages would be needed to meaningfully separate the two methods here; this run confirms both retrieval paths work correctly end-to-end, not that they're equally good under pressure.
 
 ## Quick Start
 1. Clone the repository:
