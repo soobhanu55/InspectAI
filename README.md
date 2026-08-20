@@ -33,6 +33,12 @@ Image Upload → FastAPI → YOLOv8n → LangGraph →
 
 This is stated plainly rather than left for someone to discover by reading the source. No accuracy metric is reported for defect detection because there is nothing real to measure yet — fine-tuning on a real dataset (the code's own comment suggests MVTec Anomaly Detection, which is free) is the next real piece of work here, not something already done.
 
+## Demo
+
+Terminal recording of the real RAG retrieval evaluation running end to end:
+
+![Terminal recording of the retrieval evaluation](docs/demo.gif)
+
 ## Evaluation: RAG retrieval (real, local, $0)
 
 Unlike the vision side, the RAG components (`rag/embeddings.py` LocalEmbeddings, `rag/retriever.py` BM25Index, `rag/reranker.py` CrossEncoderReranker) are genuinely real and run entirely locally via sentence-transformers — no external API, no cost. `tests/eval_retrieval.py` measures BM25 vs. local dense embedding retrieval against 20 hand-labeled manufacturing-QC queries over a 20-passage corpus, using the real, unmodified `BM25Index` and `LocalEmbeddings` classes:
