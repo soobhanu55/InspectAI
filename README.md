@@ -5,7 +5,7 @@ Germany manufacturing loses €50B/year to defects.
 40% of SMEs cannot find AI-qualified workers (BMBF 2024).
 This project demonstrates how a student can build a production-grade multimodal AI for this market using entirely free tools.
 
-##  Architecture Diagram
+## Architecture Diagram
 
 ```ascii
 Image Upload → FastAPI → YOLOv8n → LangGraph →
@@ -27,7 +27,7 @@ Image Upload → FastAPI → YOLOv8n → LangGraph →
 - **RAGAS Integration:** ~~Asynchronous evaluation of the RAG pipeline assessing faithfulness, answer relevancy, and context precision.~~ **Correction:** `backend/mlops/evaluation.py` is currently an empty placeholder (`pass`, with a "Placeholder for RAGAS evaluation" comment) — this was claimed as working before it was, and is corrected here rather than left standing. See "Evaluation" below for what actually is measured.
 - **Structured Logging:** Utilizes `structlog` for predictable, parsable application logs to debug model behavior quickly.
 
-## ⚠️ Honest limitation: the defect detector is not a trained defect model
+## Honest limitation: the defect detector is not a trained defect model
 
 `backend/vision/detector.py` runs stock YOLOv8n, pretrained on COCO (everyday objects: people, cars, chairs), not fine-tuned on any manufacturing defect dataset. Whatever COCO class it happens to detect gets remapped onto a defect label (scratch/crack/dent/porosity/corrosion/inclusion) via `cls_id % 6` — the label has no real relationship to an actual defect. When the model finds nothing (the common case on real inspection-style images, which look nothing like COCO photos), the code falls back to a **deterministic, hash-based simulated detection**, explicitly marked `"simulated": True` in the return value and documented in-code as "make demos reproducible and impressive without fine-tuning." `test_vision.py`'s only vision test exercises exactly this fallback path on a black image, not real detection accuracy.
 
