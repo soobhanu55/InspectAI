@@ -24,10 +24,10 @@ class Settings(BaseSettings):
     sparse_weight: float = 0.3
     rrf_k: int = 60
 
-    # Vision — CPU YOLOv8n
-    yolo_model: str = "yolov8n.pt"
+    # Vision — YOLOv8n fine-tuned on NEU-DET (real steel surface defects, see finetune/README.md)
+    yolo_model: str = "vision/weights/neu_det_yolov8n.pt"
     yolo_conf_threshold: float = 0.25
-    image_size: int = 640
+    image_size: int = 224
 
     # MLOps — local SQLite, free
     sqlite_db: str = "./fertigungsai.db"

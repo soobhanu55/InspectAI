@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+env/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+
+# Fine-tuning: dataset is a large public academic dataset, re-downloadable
+# via finetune/README.md, and training runs/plots are reproducible from
+# train.py, neither needs to live in the repo. The deployed weights
+# (backend/vision/weights/neu_det_yolov8n.pt) are the evidence of the real
+# trained result and ARE kept.
+finetune/data/
+finetune/runs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+*.pt
+!backend/vision/weights/*.pt

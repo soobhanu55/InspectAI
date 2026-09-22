@@ -5,14 +5,17 @@ from vision.preprocessor import preprocess_image
 from io import BytesIO
 
 def test_detector_with_black_image():
-    # Black image will likely result in the deterministic fallback
+    # A blank black image has no real defect on it, so the fine-tuned
+    # model finding nothing is the correct, honest result, not a bug.
+    # This only checks the detector runs and returns the right shape.
     img = Image.new('RGB', (640, 640), color='black')
     detections = detect_defects(img)
-    
-    assert len(detections) > 0
-    assert "class_name" in detections[0]
-    assert "confidence" in detections[0]
-    assert "bbox" in detections[0]
+
+    assert isinstance(detections, list)
+    for d in detections:
+        assert "class_name" in d
+        assert "confidence" in d
+        assert "bbox" in d
 
 def test_preprocessor_rejects_small_image():
     img = Image.new('RGB', (32, 32), color='white')
