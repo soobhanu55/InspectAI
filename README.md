@@ -27,11 +27,11 @@ Image Upload → FastAPI → YOLOv8n → LangGraph →
 - **RAGAS Integration:** ~~Asynchronous evaluation of the RAG pipeline assessing faithfulness, answer relevancy, and context precision.~~ **Correction:** `backend/mlops/evaluation.py` is currently an empty placeholder (`pass`, with a "Placeholder for RAGAS evaluation" comment) — this was claimed as working before it was, and is corrected here rather than left standing. See "Evaluation" below for what actually is measured.
 - **Structured Logging:** Utilizes `structlog` for predictable, parsable application logs to debug model behavior quickly.
 
-## Honest limitation: the defect detector is not a trained defect model
+## Defect detector: fine-tuned on real data (updated, was a known gap)
 
-`backend/vision/detector.py` runs stock YOLOv8n, pretrained on COCO (everyday objects: people, cars, chairs), not fine-tuned on any manufacturing defect dataset. Whatever COCO class it happens to detect gets remapped onto a defect label (scratch/crack/dent/porosity/corrosion/inclusion) via `cls_id % 6` — the label has no real relationship to an actual defect. When the model finds nothing (the common case on real inspection-style images, which look nothing like COCO photos), the code falls back to a **deterministic, hash-based simulated detection**, explicitly marked `"simulated": True` in the return value and documented in-code as "make demos reproducible and impressive without fine-tuning." `test_vision.py`'s only vision test exercises exactly this fallback path on a black image, not real detection accuracy.
+`backend/vision/detector.py` used to run stock YOLOv8n, pretrained on COCO, with COCO classes remapped onto invented defect labels via `cls_id % 6`, plus a hash-based simulated fallback when nothing was detected. That's fixed for real now: YOLOv8n is fine-tuned on **NEU-DET**, a public steel surface defect dataset (1800 images, 6 real classes with bounding-box labels), full method and honest per-class numbers in [`finetune/README.md`](finetune/README.md).
 
-This is stated plainly rather than left for someone to discover by reading the source. No accuracy metric is reported for defect detection because there is nothing real to measure yet — fine-tuning on a real dataset (the code's own comment suggests MVTec Anomaly Detection, which is free) is the next real piece of work here, not something already done.
+Measured on a 180-image held-out test split: **mAP50 0.750** (up from 0.0 for the untouched stock model, which has no overlap with these classes by construction). Per-class AP50 ranges from 0.945 (patches) down to 0.449 (crazing), the weak class is disclosed, not averaged away. The simulated fallback is gone, an empty result now means the model genuinely found nothing.
 
 ## Demo
 
