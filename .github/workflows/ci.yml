@@ -17,11 +17,12 @@ jobs:
       - run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords')"
       - name: Run pytest
         shell: bash
+        working-directory: backend   # weights are loaded relative to backend/
         run: |
-          pytest backend/tests/ -v --tb=short 2>&1 | tee pytest_log.txt
+          pytest tests/ -v --tb=short 2>&1 | tee ../pytest_log.txt
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          PYTHONPATH: backend
+          PYTHONPATH: .
 
       - name: Publish Pytest Logs on Failure
         if: always()
