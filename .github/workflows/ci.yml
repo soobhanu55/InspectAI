@@ -16,8 +16,9 @@ jobs:
       - run: pip install -r backend/requirements.txt
       - run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords')"
       - name: Run pytest
+        shell: bash
         run: |
-          pytest backend/tests/ -v --tb=short > pytest_log.txt 2>&1
+          pytest backend/tests/ -v --tb=short 2>&1 | tee pytest_log.txt
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PYTHONPATH: backend
