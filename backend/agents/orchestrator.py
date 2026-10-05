@@ -27,14 +27,14 @@ class OrchestratorAgent:
         builder.add_node("retrieve_context", self.retrieve_context_node)
         builder.add_node("classify_severity", self.classify_severity_node)
         builder.add_node("rca", self.rca_node)
-        builder.add_node("action_plan", self.action_plan_node)
+        builder.add_node("plan_actions", self.action_plan_node)  # node name must differ from the "action_plan" state key (newer LangGraph rejects the clash)
         builder.add_node("eu_compliance", self.eu_compliance_node)
         
         builder.add_edge(START, "retrieve_context")
         builder.add_edge("retrieve_context", "classify_severity")
         builder.add_edge("classify_severity", "rca")
-        builder.add_edge("rca", "action_plan")
-        builder.add_edge("action_plan", "eu_compliance")
+        builder.add_edge("rca", "plan_actions")
+        builder.add_edge("plan_actions", "eu_compliance")
         builder.add_edge("eu_compliance", END)
         
         self.graph = builder.compile()
