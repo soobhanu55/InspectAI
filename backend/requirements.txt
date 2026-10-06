@@ -21,6 +21,6 @@ ragas==0.2.6
 httpx==0.28.1
 redis==5.2.1
 scipy==1.14.1
-fakeredis==2.26.2
+fakeredis==2.39.0
 pytest==8.3.4
 pytest-asyncio==0.24.0
