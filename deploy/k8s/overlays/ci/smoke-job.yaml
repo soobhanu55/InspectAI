@@ -4,7 +4,7 @@ kind: Job
 metadata:
   name: smoke-camera
 spec:
-  backoffLimit: 4
+  backoffLimit: 8
   template:
     metadata: {labels: {role: camera}}
     spec:

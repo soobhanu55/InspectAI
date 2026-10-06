@@ -63,11 +63,14 @@ def new_client(client_id: str):
     return mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
 
 
-def connect(client, url: str, keepalive: int = 30) -> None:
+def connect(client, url: str, keepalive: int = 30, retry: bool = False) -> None:
+    """retry=True connects in the background (paho keeps trying with backoff until the broker is reachable), so a
+    client that starts before the broker, as happens in Kubernetes, does not crash."""
     u = urlparse(url)
     if u.username:
         client.username_pw_set(u.username, u.password)
-    client.connect(u.hostname or "localhost", u.port or 1883, keepalive)
+    host, port = u.hostname or "localhost", u.port or 1883
+    (client.connect_async if retry else client.connect)(host, port, keepalive)
 
 
 class MqttFramePublisher:

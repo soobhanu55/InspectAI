@@ -17,7 +17,7 @@ spec:
           readinessProbe: {exec: {command: ["redis-cli", "ping"]}, periodSeconds: 5}
           livenessProbe: {exec: {command: ["redis-cli", "ping"]}, initialDelaySeconds: 10, periodSeconds: 10}
           resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {memory: 256Mi}}
-          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: ["ALL"]}}
+          securityContext: {runAsNonRoot: true, runAsUser: 999, runAsGroup: 1000, allowPrivilegeEscalation: false, capabilities: {drop: ["ALL"]}}   # started as the redis user: the image's privilege-dropping entrypoint needs capabilities we drop
 ---
 apiVersion: v1
 kind: Service

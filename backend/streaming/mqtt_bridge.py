@@ -18,7 +18,7 @@ def main() -> None:  # pragma: no cover - wiring, exercised by the docker-compos
     client = new_client(os.environ.get("MQTT_CLIENT_ID", "mqtt-bridge"))
     bridge.attach(client)
     client.reconnect_delay_set(min_delay=1, max_delay=30)  # paho reconnects with backoff after a broker restart
-    connect(client, os.environ.get("MQTT_URL", "mqtt://localhost:1883"))
+    connect(client, os.environ.get("MQTT_URL", "mqtt://localhost:1883"), retry=True)
     signal.signal(signal.SIGTERM, lambda *_: client.disconnect())
     client.loop_forever(retry_first_connection=True)
 

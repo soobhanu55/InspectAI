@@ -102,8 +102,13 @@ def main() -> None:  # pragma: no cover - CLI wiring
         from streaming.mqtt import MqttFramePublisher, connect, new_client
 
         client = new_client(f"camera-{args.machine}")
-        connect(client, os.environ.get("MQTT_URL", "mqtt://localhost:1883"))
+        connect(client, os.environ.get("MQTT_URL", "mqtt://localhost:1883"), retry=True)
         client.loop_start()
+        deadline = time.time() + 60
+        while not client.is_connected() and time.time() < deadline:  # the broker may still be starting
+            time.sleep(0.5)
+        if not client.is_connected():
+            raise SystemExit("could not reach the MQTT broker within 60 s")
         broker = MqttFramePublisher(client)
     else:
         broker = RedisStreamBroker(redis.Redis.from_url(os.environ["REDIS_URL"]))
