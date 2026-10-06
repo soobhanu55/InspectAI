@@ -60,3 +60,55 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "20"}
       - run: cd frontend && npm ci && npm run build
+
+  kubernetes:
+    # Deploys the whole stack to a throwaway kind cluster and pushes frames through it:
+    # camera job -> MQTT (Mosquitto) -> bridge -> Redis Stream -> worker (YOLO) -> TimescaleDB -> API.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with: {cluster_name: inspectai}
+      - name: Validate every manifest against the cluster API server
+        run: |
+          kubectl kustomize deploy/k8s/overlays/ci > /tmp/rendered.yaml
+          kubectl apply --dry-run=server -f /tmp/rendered.yaml
+      - name: Build the application image and load it into the cluster
+        run: |
+          docker build -t inspectai:ci .
+          kind load docker-image inspectai:ci --name inspectai
+      - name: Deploy
+        run: |
+          kubectl apply -f /tmp/rendered.yaml
+          kubectl -n inspectai rollout status statefulset/timescaledb --timeout=300s
+          for d in redis mosquitto backend stream-worker mqtt-bridge; do kubectl -n inspectai rollout status deployment/$d --timeout=600s; done
+      - name: Smoke test, 40 synthetic frames from MQTT to TimescaleDB
+        run: |
+          kubectl -n inspectai wait --for=condition=complete job/smoke-camera --timeout=300s
+          kubectl -n inspectai port-forward svc/backend 7860:80 &
+          sleep 5
+          python3 - <<'PY'
+          import json, time, urllib.request
+          def get(path):
+              return json.load(urllib.request.urlopen("http://localhost:7860" + path, timeout=10))
+          deadline, frames = time.time() + 180, 0
+          while time.time() < deadline and frames < 40:
+              frames = sum(b["frames"] for b in get("/api/mlops/timeseries?minutes=30&bucket=1%20hour")["buckets"])
+              time.sleep(3)
+          status = get("/api/stream/status")
+          print("frames in TimescaleDB:", frames, "| stream status:", status)
+          assert frames >= 40, "frames did not make it through the pipeline"
+          assert status["configured"] and status["lag"] == 0
+          PY
+      - name: Autoscaler and network policies exist
+        run: |
+          kubectl -n inspectai get hpa backend
+          test "$(kubectl -n inspectai get networkpolicy -o name | wc -l)" -ge 5
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          kubectl -n inspectai get all,pvc,events || true
+          kubectl -n inspectai describe pods || true
+          for d in backend stream-worker mqtt-bridge mosquitto redis; do echo "=== $d"; kubectl -n inspectai logs deployment/$d --tail=80 || true; done
+          kubectl -n inspectai logs job/smoke-camera --tail=40 || true

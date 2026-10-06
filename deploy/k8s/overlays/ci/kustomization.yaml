@@ -1,0 +1,11 @@
+# Used by CI on a throwaway kind cluster: the locally built image, a generated throwaway password, and a smoke job.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: inspectai
+resources: [../../base, smoke-job.yaml]
+images:
+  - {name: inspectai, newName: inspectai, newTag: ci}
+secretGenerator:
+  - name: timescaledb-credentials
+    literals: [password=ci-only-not-a-secret]
+    options: {disableNameSuffixHash: true}

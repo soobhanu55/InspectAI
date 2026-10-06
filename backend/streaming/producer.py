@@ -58,6 +58,16 @@ def make_frames(paths: list[Path], count: int, machine: str = "M1", part_type: s
                     meta={"index": i, "source": path.name, "fault": fault if faulty else "none"})
 
 
+def make_synthetic_frames(count: int, machine: str = "M1", part_type: str = "steel-strip", seed: int = 0, clock=time.time):
+    """Random-texture frames for smoke tests (no image files needed): they exercise the transport and the pipeline,
+    not the detector's accuracy."""
+    rng = np.random.default_rng(seed)
+    for i in range(count):
+        image = Image.fromarray(rng.integers(0, 256, (200, 200, 3), dtype=np.uint8))
+        yield Frame(frame_id=f"{machine}-{uuid.uuid4().hex[:12]}", machine=machine, part_type=part_type,
+                    image=to_jpeg(image), captured_at=clock(), meta={"index": i, "source": "synthetic", "fault": "none"})
+
+
 def publish_stream(broker: Broker, frames, rate_hz: float = 0.0, sleep=time.sleep) -> int:
     n = 0
     for frame in frames:
@@ -74,7 +84,8 @@ def main() -> None:  # pragma: no cover - CLI wiring
     from streaming.broker import RedisStreamBroker
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--source", required=True, help="folder of .jpg/.png/.bmp images to replay")
+    ap.add_argument("--source", help="folder of .jpg/.png/.bmp images to replay")
+    ap.add_argument("--synthetic", type=int, default=0, help="publish N random-texture frames instead of replaying --source (smoke tests)")
     ap.add_argument("--count", type=int, default=600)
     ap.add_argument("--rate", type=float, default=10.0, help="frames per second (0 = as fast as possible)")
     ap.add_argument("--machine", default="M1")
@@ -85,7 +96,8 @@ def main() -> None:  # pragma: no cover - CLI wiring
                     help="redis: write the stream directly; mqtt: publish like a camera gateway (MQTT_URL), a bridge forwards to Redis")
     args = ap.parse_args()
 
-    paths = sorted(p for p in Path(args.source).iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"})
+    if not args.synthetic and not args.source:
+        ap.error("give --source FOLDER or --synthetic N")
     if args.transport == "mqtt":
         from streaming.mqtt import MqttFramePublisher, connect, new_client
 
@@ -95,8 +107,12 @@ def main() -> None:  # pragma: no cover - CLI wiring
         broker = MqttFramePublisher(client)
     else:
         broker = RedisStreamBroker(redis.Redis.from_url(os.environ["REDIS_URL"]))
-    n = publish_stream(broker, make_frames(paths, args.count, args.machine, fault=args.fault,
-                                           fault_after=args.fault_after, seed=args.seed), args.rate)
+    if args.synthetic:
+        frames = make_synthetic_frames(args.synthetic, args.machine, seed=args.seed)
+    else:
+        paths = sorted(p for p in Path(args.source).iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"})
+        frames = make_frames(paths, args.count, args.machine, fault=args.fault, fault_after=args.fault_after, seed=args.seed)
+    n = publish_stream(broker, frames, args.rate)
     if args.transport == "mqtt":
         broker.flush()  # QoS 1 publishes are acknowledged asynchronously: wait for the last one
         client.loop_stop()

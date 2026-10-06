@@ -179,10 +179,10 @@ def main() -> None:  # pragma: no cover - wiring only, exercised by the docker-c
 
     timeseries = None
     if os.environ.get("TIMESCALE_URL"):
-        from mlops.timeseries import TimescaleSink
+        from mlops.timeseries import TimescaleSink, ensure_schema_with_retry
 
         timeseries = TimescaleSink(os.environ["TIMESCALE_URL"])
-        timeseries.ensure_schema()
+        ensure_schema_with_retry(timeseries)
 
     start_http_server(int(os.environ.get("WORKER_METRICS_PORT", "9108")))
     worker = Worker(broker, FrameProcessor(detect_defects, preprocess_image), monitor,

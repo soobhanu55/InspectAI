@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inspectai-config
+data:
+  REDIS_URL: redis://redis:6379/0
+  MQTT_URL: mqtt://mosquitto:1883
+  SQLITE_DB: /data/db/inspect.db
+  ENVIRONMENT: production
+  BASELINE_FRAMES: "150"
+  STALL_SECONDS: "30"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+data:
+  mosquitto.conf: |
+    # Anonymous access inside the cluster network only. Production: password file or client certificates, and TLS.
+    listener 1883
+    allow_anonymous true
+    persistence false

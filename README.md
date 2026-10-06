@@ -49,6 +49,20 @@ docker compose --profile stream up -d
 NEUDET_TEST_IMAGES=/path/to/NEU-DET/test/images docker compose --profile stream --profile demo up producer
 ```
 
+## Kubernetes (`deploy/k8s`)
+
+The whole streaming stack as Kustomize manifests: Redis, Mosquitto, a TimescaleDB StatefulSet with a volume claim, the API (HorizontalPodAutoscaler, startup/readiness/liveness probes), the stream worker, the MQTT bridge, five NetworkPolicies (default deny, then only the paths the pipeline uses) and resource requests and limits on everything.
+
+```bash
+kubectl create namespace inspectai
+kubectl -n inspectai create secret generic timescaledb-credentials --from-literal=password="$(openssl rand -hex 16)"
+kubectl apply -k deploy/k8s/base          # needs an image named inspectai:latest that the cluster can pull
+```
+
+**Tested on every push** (the `kubernetes` CI job): a throwaway `kind` cluster, `kubectl apply --dry-run=server` of every manifest, the real image built and loaded, all workloads rolled out, then a camera Job publishes 40 frames over MQTT and the job asserts they arrive in TimescaleDB through the bridge, Redis Stream and the YOLO worker, with the stream lag back at 0. That proves the manifests deploy and the pipeline works inside a cluster; it does not prove production readiness.
+
+Known limits, stated plainly: the API and the worker share a SQLite file on a ReadWriteOnce volume, so the worker has a pod affinity to the API's node and runs as a single replica (a shared database such as the TimescaleDB would remove this); Mosquitto allows anonymous clients inside the namespace and needs authentication and TLS in production; the app image runs as root; the HorizontalPodAutoscaler needs metrics-server, which kind does not ship; there is no Ingress, the frontend is a static site hosted separately.
+
 ### Measured on real detector output (`docs/monitoring_eval.md`)
 
 The real fine-tuned YOLOv8n ran over 90 held-out NEU-DET test images, clean and with camera faults; streams of 900 frames (baseline of 150, a fault from frame 450) were replayed through the real monitor, 200 random streams per scenario. The 180 test images were split: the even half was used to diagnose and fix the monitor, this table is on the odd half, which that work never touched.

@@ -1,0 +1,18 @@
+# A camera: publishes synthetic frames over MQTT. The CI job then checks that they reached TimescaleDB through the whole chain.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: smoke-camera
+spec:
+  backoffLimit: 4
+  template:
+    metadata: {labels: {role: camera}}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: camera
+          image: inspectai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "streaming.producer", "--synthetic", "40", "--rate", "0", "--machine", "M1", "--transport", "mqtt"]
+          env: [{name: MQTT_URL, value: "mqtt://mosquitto:1883"}]
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {memory: 512Mi}}

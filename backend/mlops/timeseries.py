@@ -9,6 +9,8 @@ and a failing database never blocks inspection (see Worker).
 """
 from __future__ import annotations
 
+import time
+
 import structlog
 
 logger = structlog.get_logger()
@@ -95,3 +97,16 @@ def query_series(dsn: str, machine: str | None, minutes: int, bucket: str) -> li
         return sink.series(machine, minutes, bucket)
     finally:
         sink.close()
+
+
+def ensure_schema_with_retry(sink: TimescaleSink, attempts: int = 30, delay: float = 2.0, sleep=time.sleep) -> None:
+    """Create the schema, waiting for the database to come up (in Kubernetes the worker can start before it is ready)."""
+    for attempt in range(1, attempts + 1):
+        try:
+            sink.ensure_schema()
+            return
+        except Exception as exc:
+            if attempt == attempts:
+                raise
+            logger.warning("timescale_not_ready", attempt=attempt, error=type(exc).__name__)
+            sleep(delay)

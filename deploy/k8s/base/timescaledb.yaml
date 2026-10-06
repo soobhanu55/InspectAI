@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  labels: {app: timescaledb}
+spec:
+  serviceName: timescaledb
+  replicas: 1
+  selector: {matchLabels: {app: timescaledb}}
+  template:
+    metadata: {labels: {app: timescaledb}}
+    spec:
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:latest-pg16
+          ports: [{containerPort: 5432}]
+          env:
+            - {name: POSTGRES_DB, value: inspect}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: timescaledb-credentials, key: password}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          readinessProbe: {exec: {command: ["pg_isready", "-U", "postgres", "-d", "inspect"]}, periodSeconds: 5}
+          livenessProbe: {exec: {command: ["pg_isready", "-U", "postgres", "-d", "inspect"]}, initialDelaySeconds: 30, periodSeconds: 15}
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {memory: 1Gi}}
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+spec:
+  clusterIP: None   # headless: the StatefulSet pod keeps a stable DNS name
+  selector: {app: timescaledb}
+  ports: [{port: 5432, targetPort: 5432}]

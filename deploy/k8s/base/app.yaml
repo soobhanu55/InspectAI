@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: inspect-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: {requests: {storage: 1Gi}}
+---
+# API (FastAPI): inspections, RAG assistant, dashboard data, alerts.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels: {app: backend}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: backend}}
+  template:
+    metadata:
+      labels: {app: backend}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "7860", prometheus.io/path: /api/metrics}
+    spec:
+      containers:
+        - name: backend
+          image: inspectai:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 7860, name: http}]
+          envFrom: [{configMapRef: {name: inspectai-config}}]
+          env:
+            - name: TIMESCALE_PASSWORD
+              valueFrom: {secretKeyRef: {name: timescaledb-credentials, key: password}}
+            - {name: TIMESCALE_URL, value: "postgresql://postgres:$(TIMESCALE_PASSWORD)@timescaledb:5432/inspect"}
+            - name: GROQ_API_KEY   # optional: only the LLM root-cause agent and RAG answers need it
+              valueFrom: {secretKeyRef: {name: inspectai-secrets, key: groq-api-key, optional: true}}
+          startupProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10, failureThreshold: 60}   # model loading takes a while
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 20, failureThreshold: 3}
+          resources: {requests: {cpu: 200m, memory: 768Mi}, limits: {memory: 3Gi}}
+          securityContext: {allowPrivilegeEscalation: false}
+          volumeMounts: [{name: data, mountPath: /data/db}]
+      volumes: [{name: data, persistentVolumeClaim: {claimName: inspect-data}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector: {app: backend}
+  ports: [{port: 80, targetPort: http, name: http}]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: backend}
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}
+---
+# Stream worker: reads frames from the Redis stream, runs YOLO, writes SQLite + TimescaleDB, raises alerts.
+# SQLite is a file on a ReadWriteOnce volume shared with the API, so the worker must land on the API's node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-worker
+  labels: {app: stream-worker}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: stream-worker}}
+  template:
+    metadata:
+      labels: {app: stream-worker}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "9108"}
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: backend}}
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: worker
+          image: inspectai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "streaming.worker"]
+          ports: [{containerPort: 9108, name: metrics}]
+          envFrom: [{configMapRef: {name: inspectai-config}}]
+          env:
+            - name: TIMESCALE_PASSWORD
+              valueFrom: {secretKeyRef: {name: timescaledb-credentials, key: password}}
+            - {name: TIMESCALE_URL, value: "postgresql://postgres:$(TIMESCALE_PASSWORD)@timescaledb:5432/inspect"}
+            - {name: WORKER_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+          startupProbe: {tcpSocket: {port: metrics}, periodSeconds: 10, failureThreshold: 60}
+          readinessProbe: {tcpSocket: {port: metrics}, periodSeconds: 10}
+          livenessProbe: {tcpSocket: {port: metrics}, periodSeconds: 20, failureThreshold: 3}
+          resources: {requests: {cpu: 200m, memory: 768Mi}, limits: {memory: 3Gi}}
+          securityContext: {allowPrivilegeEscalation: false}
+          volumeMounts: [{name: data, mountPath: /data/db}]
+      volumes: [{name: data, persistentVolumeClaim: {claimName: inspect-data}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stream-worker-metrics
+spec:
+  selector: {app: stream-worker}
+  ports: [{port: 9108, targetPort: metrics, name: metrics}]
+---
+# MQTT to Redis Stream bridge.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-bridge
+  labels: {app: mqtt-bridge}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: mqtt-bridge}}
+  template:
+    metadata: {labels: {app: mqtt-bridge}}
+    spec:
+      containers:
+        - name: bridge
+          image: inspectai:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "streaming.mqtt_bridge"]
+          envFrom: [{configMapRef: {name: inspectai-config}}]
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false}
