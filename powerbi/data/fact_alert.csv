@@ -1,0 +1,16 @@
+alert_id,timestamp,date_key,name,status,severity,frame_index,message
+1,2026-09-01 01:05:00,20260901,latency_slo,firing,warning,260,p95 latency 30 ms exceeds the limit 23 ms
+2,2026-09-01 14:12:30,20260901,drift_sharpness,firing,warning,3410,"sharpness shifted from the baseline (median 488 -> 66.8, KS p=1.3e-06)"
+3,2026-09-01 14:22:30,20260901,class_mix_drift,firing,warning,3450,the mix of defect classes changed (chi-square p=2.3e-06; most frequent now: scratches)
+4,2026-09-01 15:07:30,20260901,class_mix_drift,resolved,info,3630,back within the baseline
+5,2026-09-01 15:25:00,20260901,class_mix_drift,firing,warning,3700,the mix of defect classes changed (chi-square p=7.3e-05; most frequent now: pitted_surface)
+6,2026-09-01 15:37:30,20260901,class_mix_drift,resolved,info,3750,back within the baseline
+7,2026-09-01 16:07:30,20260901,class_mix_drift,firing,warning,3870,the mix of defect classes changed (chi-square p=9.8e-05; most frequent now: pitted_surface)
+8,2026-09-01 16:22:30,20260901,class_mix_drift,resolved,info,3930,back within the baseline
+9,2026-09-01 16:27:30,20260901,class_mix_drift,firing,warning,3950,the mix of defect classes changed (chi-square p=1.8e-06; most frequent now: pitted_surface)
+10,2026-09-01 16:52:30,20260901,class_mix_drift,resolved,info,4050,back within the baseline
+11,2026-09-01 17:00:00,20260901,class_mix_drift,firing,warning,4080,the mix of defect classes changed (chi-square p=2.2e-05; most frequent now: pitted_surface)
+12,2026-09-01 17:05:00,20260901,class_mix_drift,resolved,info,4100,back within the baseline
+13,2026-09-01 17:22:30,20260901,drift_sharpness,resolved,info,4170,back within the baseline
+14,2026-09-01 20:57:30,20260901,latency_slo,resolved,info,5030,back within the baseline
+15,2026-09-01 21:47:30,20260901,latency_slo,firing,warning,5230,p95 latency 29 ms exceeds the limit 23 ms

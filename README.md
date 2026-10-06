@@ -155,3 +155,7 @@ This system falls under **Minimal Risk (Article 6)**. It acts as an internal qua
 82 tests in CI (against real Redis, Mosquitto and TimescaleDB services; 73 run with no service at all), **94% line coverage** (91% without the services) of the backend source packages `monitoring`, `streaming`, `mlops` and `api` (CI fails below 85%); the frontend has its own test job. The YOLO inference and LLM-agent modules are covered by integration-style tests and are not part of that percentage.
 
 **Verified end to end** (locally, real Mosquitto, Redis, TimescaleDB and the real fine-tuned YOLO): 120 frames published over MQTT arrived in SQLite (120 rows) and in TimescaleDB (per-minute buckets with defect rate and p95 latency). CI runs the MQTT and TimescaleDB integration tests against a real Mosquitto and a TimescaleDB service container; the unit tests need neither. Mosquitto here allows anonymous access for local use only; production needs authentication and TLS.
+
+## Power BI
+
+`powerbi/` holds a star-schema export of the inspection log (`export_powerbi.py`, tested), a sample day through the real detector and monitor, Power Query loaders, DAX measures (detection rate, p95 latency, defect share, alert durations) and a build guide for a four-page quality report. A `.pbix` file cannot be generated outside Power BI Desktop, so the report itself is built from that guide in about 30 minutes; see [`powerbi/README.md`](powerbi/README.md).

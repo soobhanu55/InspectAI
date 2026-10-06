@@ -1,0 +1,8 @@
+defect_key,defect_class,severity
+1,crazing,medium
+2,inclusion,medium
+3,patches,low
+4,pitted_surface,medium
+5,rolled-in_scale,low
+6,scratches,medium
+7,none,none
