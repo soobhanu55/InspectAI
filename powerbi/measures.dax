@@ -1,0 +1,81 @@
+// Measures for the InspectAI quality dashboard. Create them in a table named "_Measures" (Enter data, one blank column).
+// Model: fact_inspection / fact_alert are related many-to-one to dim_date[date_key]; fact_inspection also to
+// dim_hour[hour], dim_machine[machine_key], dim_defect_class[defect_key]. See README.md.
+
+// ---------- volume ----------
+Inspections = COUNTROWS ( fact_inspection )
+
+Frames With Detection =
+CALCULATE ( COUNTROWS ( fact_inspection ), fact_inspection[has_defect] = 1 )
+
+Detections = SUM ( fact_inspection[n_detections] )
+
+// ---------- quality ----------
+// Share of frames in which the detector found at least one defect. On NEU-DET-like data nearly every part is
+// defective, so this is a sensitivity signal (a blind or blurred camera drops it), not a scrap rate.
+Detection Rate = DIVIDE ( [Frames With Detection], [Inspections] )
+
+Detection Rate vs Day =
+VAR today = [Detection Rate]
+VAR allDay = CALCULATE ( [Detection Rate], ALL ( dim_hour ) )
+RETURN today - allDay
+
+Avg Confidence = AVERAGE ( fact_inspection[confidence] )
+
+// Defect mix: share of all detections taken by the selected class(es).
+Defect Share =
+DIVIDE ( [Detections], CALCULATE ( [Detections], ALL ( dim_defect_class ) ) )
+
+// ---------- latency ----------
+Avg Latency ms = AVERAGE ( fact_inspection[latency_ms] )
+
+P95 Latency ms = PERCENTILE.INC ( fact_inspection[latency_ms], 0.95 )
+
+Frames Over Latency Budget =
+CALCULATE ( COUNTROWS ( fact_inspection ), fact_inspection[latency_ms] > [Latency Budget ms] )
+
+Latency Budget ms = 100   // an assumption: set to the line's per-part time budget
+
+// ---------- statistical process control (p-chart on the detection rate, per hour) ----------
+// Centre line and 3-sigma limits from the machine's overall rate. CAUTION: the normal-approximation p-chart is
+// wrong when the rate is near 0 or 1 (this data sits near 96%): the limits are too tight there and it false-alarms.
+// The monitor in this repo uses an exact test instead; use these lines for orientation, and the alert markers below
+// (from the real monitor) for decisions.
+Centre Line = CALCULATE ( [Detection Rate], ALL ( dim_hour ), ALL ( dim_date ) )
+
+UCL =
+VAR p = [Centre Line]
+VAR n = [Inspections]
+RETURN MIN ( 1, p + 3 * SQRT ( DIVIDE ( p * ( 1 - p ), n ) ) )
+
+LCL =
+VAR p = [Centre Line]
+VAR n = [Inspections]
+RETURN MAX ( 0, p - 3 * SQRT ( DIVIDE ( p * ( 1 - p ), n ) ) )
+
+Out Of Control Hours =
+SUMX (
+    SUMMARIZE ( fact_inspection, dim_hour[hour], dim_date[date_key], dim_machine[machine] ),
+    VAR r = [Detection Rate]
+    RETURN IF ( r < [LCL] || r > [UCL], 1, 0 )
+)
+
+// ---------- alerts (from the stream monitor) ----------
+Alerts Fired = CALCULATE ( COUNTROWS ( fact_alert ), fact_alert[status] = "firing" )
+
+Alerts Resolved = CALCULATE ( COUNTROWS ( fact_alert ), fact_alert[status] = "resolved" )
+
+// Minutes between the first "firing" and the last "resolved" event of each alert type in the current filter context.
+Alert Minutes Firing =
+SUMX (
+    VALUES ( fact_alert[name] ),
+    VAR f = CALCULATE ( MIN ( fact_alert[timestamp] ), fact_alert[status] = "firing" )
+    VAR r = CALCULATE ( MAX ( fact_alert[timestamp] ), fact_alert[status] = "resolved" )
+    RETURN IF ( NOT ISBLANK ( f ) && NOT ISBLANK ( r ) && r > f, DATEDIFF ( f, r, MINUTE ), 0 )
+)
+
+Open Alerts = [Alerts Fired] - [Alerts Resolved]
+
+// Marker series for the line chart: the detection rate only at hours where an alert fired.
+Detection Rate At Alert =
+IF ( [Alerts Fired] > 0, [Detection Rate] )

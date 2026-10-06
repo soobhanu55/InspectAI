@@ -73,6 +73,7 @@ jobs:
       - name: Validate every manifest against the cluster API server
         run: |
           kubectl kustomize deploy/k8s/overlays/ci > /tmp/rendered.yaml
+          kubectl apply -f deploy/k8s/base/namespace.yaml   # a server-side dry run cannot create objects in a namespace that does not exist yet
           kubectl apply --dry-run=server -f /tmp/rendered.yaml
       - name: Build the application image and load it into the cluster
         run: |
