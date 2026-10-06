@@ -132,3 +132,7 @@ Both methods hit 100% on this set — worth being honest about what that does an
 
 ## EU AI Act Compliance Note
 This system falls under **Minimal Risk (Article 6)**. It acts as an internal quality control system and does not interact with consumers, manipulate human behavior, or make safety-critical decisions autonomously.
+
+## Test coverage
+
+61 tests (CI, with a real Redis service), **94% line coverage** of the backend source packages `monitoring`, `streaming`, `mlops` and `api` (CI fails below 85%); the frontend has its own test job. The YOLO inference and LLM-agent modules are covered by integration-style tests and are not part of that percentage.

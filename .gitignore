@@ -38,3 +38,7 @@ eval_run.log
 Thumbs.db
 *.pt
 !backend/vision/weights/*.pt
+
+.coverage
+htmlcov/
+coverage.xml
