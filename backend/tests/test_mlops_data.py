@@ -89,9 +89,10 @@ def test_totals_and_latency_percentiles_are_computed_from_the_rows(db):
 
 def test_hourly_buckets_count_real_rows_by_hour_and_drop_rows_older_than_24h(db):
     now = datetime.now(timezone.utc)
-    insert_at(db, now - timedelta(hours=2, minutes=-1), True, id_="a")
-    insert_at(db, now - timedelta(hours=2, minutes=-2), False, id_="b")
-    insert_at(db, now - timedelta(hours=5), True, id_="c")
+    mid = now.replace(minute=30, second=0, microsecond=0)  # rows sit mid-hour, so the test cannot flip across an hour boundary
+    insert_at(db, mid - timedelta(hours=2, minutes=-1), True, id_="a")
+    insert_at(db, mid - timedelta(hours=2, minutes=-2), False, id_="b")
+    insert_at(db, mid - timedelta(hours=5), True, id_="c")
     insert_at(db, now - timedelta(hours=30), True, id_="too-old")
     h = metrics()["hourly_defects"]
     assert len(h) == 24 and h[-1]["hour"] == now.strftime("%H:00")
