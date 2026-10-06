@@ -7,7 +7,7 @@ from vision.preprocessor import preprocess_image
 from vision.detector import detect_defects
 from agents.orchestrator import OrchestratorAgent
 from mlops.logger import log_inspection
-from mlops.metrics import record_inspection_metrics
+from mlops.metrics import INSPECTION_LATENCY, VISION_LATENCY, record_inspection_metrics
 
 router = APIRouter()
 
@@ -26,8 +26,10 @@ async def inspect_image(
     image = preprocess_image(image_bytes)
     
     # 2. Vision detection
+    vision_start = time.time()
     detections = detect_defects(image)
-    
+    VISION_LATENCY.observe(time.time() - vision_start)
+
     # 3. Run LangGraph agent pipeline
     orchestrator = OrchestratorAgent()
     result = await orchestrator.ainvoke({
@@ -39,14 +41,15 @@ async def inspect_image(
         "messages": []
     })
     
-    # 4. Record to SQLite log
-    await log_inspection(inspection_id, machine, part_type, detections, result)
-    
+    latency_ms = int((time.time() - start) * 1000)
+
+    # 4. Record to SQLite log (with the measured latency)
+    await log_inspection(inspection_id, machine, part_type, detections, result, latency_ms=latency_ms)
+
     # 5. Update Prometheus metrics
     record_inspection_metrics(machine, detections)
-    
-    latency_ms = int((time.time() - start) * 1000)
-    
+    INSPECTION_LATENCY.observe(latency_ms / 1000)
+
     return {
         "inspection_id": inspection_id,
         "detections": detections,

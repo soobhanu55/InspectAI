@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     yolo_conf_threshold: float = 0.25
     image_size: int = 224
 
+    # Streaming — Redis Streams (free, self-hosted); empty disables the stream endpoints
+    redis_url: str = ""
+
     # MLOps — local SQLite, free
     sqlite_db: str = "./fertigungsai.db"
     mlflow_tracking_uri: str = "sqlite:///mlflow.db"

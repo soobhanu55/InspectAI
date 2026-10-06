@@ -9,8 +9,11 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - CHROMA_PERSIST_DIR=/data/chroma
       - ENVIRONMENT=development
+      - SQLITE_DB=/data/db/fertigungsai.db      # shared with the stream worker
+      - REDIS_URL=${REDIS_URL:-}                # set to redis://redis:6379/0 to enable /api/stream/status
     volumes:
       - chroma_data:/data/chroma
+      - db_data:/data/db
       - ./backend:/code
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
@@ -27,5 +30,51 @@ services:
     environment:
       - VITE_API_URL=http://localhost:7860
 
+  # --- streaming (docker compose --profile stream up) ---
+  redis:
+    image: redis:7-alpine
+    profiles: ["stream"]
+    command: ["redis-server", "--save", "", "--appendonly", "no"]   # frames are transient, no persistence
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  stream-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["stream"]
+    command: ["python", "-m", "streaming.worker"]
+    depends_on:
+      redis: {condition: service_healthy}
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SQLITE_DB=/data/db/fertigungsai.db
+      - BASELINE_FRAMES=150
+      - STALL_SECONDS=30
+      # - ALERT_WEBHOOK_URL=...                # optional Slack-compatible webhook
+    ports: ["9108:9108"]                        # Prometheus metrics of the worker
+    volumes:
+      - db_data:/data/db
+
+  # Simulated camera (docker compose --profile stream --profile demo up producer): replays test images,
+  # blurs the lens from frame 450 on so the monitoring has something to catch.
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["demo"]
+    command: ["python", "-m", "streaming.producer", "--source", "/data/images", "--count", "900", "--rate", "10",
+              "--fault", "blur", "--fault-after", "450"]
+    depends_on:
+      redis: {condition: service_healthy}
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ${NEUDET_TEST_IMAGES:-./finetune/data/test/images}:/data/images:ro
+
 volumes:
+  db_data:
   chroma_data:

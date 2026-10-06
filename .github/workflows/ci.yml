@@ -4,6 +4,12 @@ on: [push, pull_request]
 jobs:
   test-backend:
     runs-on: ubuntu-latest
+    services:
+      redis:   # the broker tests also run against a real Redis (locally they use fakeredis and an in-memory broker)
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies for OpenCV/YOLO
@@ -22,6 +28,7 @@ jobs:
           pytest tests/ -v --tb=short 2>&1 | tee ../pytest_log.txt
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          REDIS_URL: redis://localhost:6379/0
           PYTHONPATH: .
 
       - name: Publish Pytest Logs on Failure

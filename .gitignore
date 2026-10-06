@@ -19,6 +19,15 @@ build/
 finetune/data/
 finetune/runs/
 
+# Generated at run time
+*.db
+*.db-wal
+*.db-shm
+chroma_db/
+*.pkl
+dist/
+eval_run.log
+
 # Environment
 .env
 .env.*
