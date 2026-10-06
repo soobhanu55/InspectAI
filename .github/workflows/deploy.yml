@@ -17,7 +17,7 @@ jobs:
           api = HfApi(token='${{ secrets.HF_TOKEN }}')
           api.upload_folder(
             folder_path='.',
-            repo_id='${{ secrets.HF_USERNAME }}/fertigungsai',
+            repo_id='${{ secrets.HF_USERNAME }}/inspectai',
             repo_type='space',
           )
           "

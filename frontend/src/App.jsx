@@ -36,7 +36,7 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-8">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-text">FertigungsAI</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-text">InspectAI</h1>
           <p className="text-text3 text-sm mt-1">Multimodal AI Quality Control Inspector</p>
         </header>
 

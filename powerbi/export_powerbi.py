@@ -1,6 +1,6 @@
 """Exports the inspection log as a star schema for Power BI (CSV files, one per table).
 
-    python powerbi/export_powerbi.py --db backend/fertigungsai.db --out powerbi/data
+    python powerbi/export_powerbi.py --db backend/inspectai.db --out powerbi/data
 
 Tables:  fact_inspection (one row per inspected frame), fact_alert (one row per alert event),
          dim_machine, dim_defect_class, dim_date (calendar), dim_hour.

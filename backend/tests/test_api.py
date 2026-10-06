@@ -34,7 +34,7 @@ def test_inspect_endpoint():
 def test_metrics_endpoint():
     response = client.get("/api/metrics")
     assert response.status_code == 200
-    assert b"fertigungsai_inspections_total" in response.content
+    assert b"inspectai_inspections_total" in response.content
 
 def test_log_endpoint():
     response = client.get("/api/log")

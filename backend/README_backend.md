@@ -1,4 +1,4 @@
-# FertigungsAI Backend
+# InspectAI Backend
 
 The backend is built with FastAPI, LangGraph, and runs completely locally using free open-source models (Llama 3.3 via Groq, YOLOv8n, sentence-transformers, ChromaDB, and rank-bm25).
 

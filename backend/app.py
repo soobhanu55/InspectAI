@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="FertigungsAI API",
+    title="InspectAI API",
     version="1.0.0",
     lifespan=lifespan
 )

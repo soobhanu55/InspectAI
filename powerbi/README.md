@@ -5,7 +5,7 @@ files, the Power Query loaders, the DAX measures, a theme, and a page-by-page bu
 
 ```bash
 # real use: export your own inspection log
-python powerbi/export_powerbi.py --db backend/fertigungsai.db --out powerbi/data
+python powerbi/export_powerbi.py --db backend/inspectai.db --out powerbi/data
 # the committed sample: one simulated production day through the real detector and monitor
 python powerbi/make_sample_day.py --images /path/to/NEU-DET/test/images --db /tmp/day.db     # run from backend/
 python powerbi/export_powerbi.py --db /tmp/day.db --out powerbi/data

@@ -34,12 +34,12 @@ class Settings(BaseSettings):
     timescale_url: str = ""  # TimescaleDB for per-frame time-series metrics (optional)
 
     # MLOps — local SQLite, free
-    sqlite_db: str = "./fertigungsai.db"
+    sqlite_db: str = "./inspectai.db"
     mlflow_tracking_uri: str = "sqlite:///mlflow.db"
 
     # LangSmith — free tier tracing (optional)
     langsmith_api_key: str | None = None
-    langsmith_project: str = "fertigungsai"
+    langsmith_project: str = "inspectai"
 
     # App
     environment: str = "development"

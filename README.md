@@ -1,4 +1,4 @@
-# FertigungsAI - Multimodal AI Quality Control Inspector
+# InspectAI - Multimodal AI Quality Control Inspector
 
 ## Problem Statement
 Germany manufacturing loses €50B/year to defects.
@@ -108,8 +108,8 @@ Both methods hit 100% on this set — worth being honest about what that does an
 ## Quick Start
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/fertigungsai.git
-   cd fertigungsai
+   git clone https://github.com/YOUR-USERNAME/inspectai.git
+   cd inspectai
    ```
 2. Copy environment file and add your Groq API key:
    ```bash
@@ -125,7 +125,7 @@ Both methods hit 100% on this set — worth being honest about what that does an
 1. **Backend (HuggingFace Spaces):**
    - Create a new Space on HuggingFace and select "Docker" as the SDK.
    - Set the `GROQ_API_KEY` in the space settings.
-   - Push the contents of the `fertigungsai` repository to the Space.
+   - Push the contents of the `inspectai` repository to the Space.
 2. **Frontend (Vercel):**
    - Import the `frontend` folder to a new Vercel project.
    - Set the `VITE_API_URL` environment variable to your HuggingFace Space URL.
