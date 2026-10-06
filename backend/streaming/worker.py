@@ -57,11 +57,12 @@ class FrameProcessor:
 class Worker:
     def __init__(self, broker: Broker, processor: FrameProcessor, monitor: StreamMonitor | None = None,
                  consumer: str = "worker-1", record: Callable | None = None, metrics=None, batch: int = 8,
-                 block_ms: int = 500, reclaim_idle_ms: int = 30_000):
+                 block_ms: int = 500, reclaim_idle_ms: int = 30_000, timeseries=None):
         self.broker, self.processor, self.monitor = broker, processor, monitor
         self.consumer, self.batch, self.block_ms, self.reclaim_idle_ms = consumer, batch, block_ms, reclaim_idle_ms
         self.record = record  # record(frame, result) -> bool inserted; None disables persistence
         self.metrics = metrics  # object with the callbacks used below, or None
+        self.timeseries = timeseries  # optional TimescaleSink-like object with write(frame, result)
         self.stats = defaultdict(int)
         self._recent: dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
 
@@ -89,6 +90,12 @@ class Worker:
             self.broker.ack(entry_id)
             return
         self.stats["ok"] += 1
+        if self.timeseries is not None:
+            try:
+                self.timeseries.write(frame, result)
+            except Exception:  # the time-series store is an add-on: its outage must never stall or fail inspection
+                self.stats["timeseries_error"] += 1
+                logger.warning("timeseries_write_failed", frame_id=frame.frame_id, exc_info=True)
         if self.metrics:
             self.metrics.frame("ok")
             self.metrics.processed(result)
@@ -170,9 +177,17 @@ def main() -> None:  # pragma: no cover - wiring only, exercised by the docker-c
         return record_inspection(frame.frame_id, frame.machine, frame.part_type, result.detections,
                                  latency_ms=result.latency_ms, source="stream")
 
+    timeseries = None
+    if os.environ.get("TIMESCALE_URL"):
+        from mlops.timeseries import TimescaleSink
+
+        timeseries = TimescaleSink(os.environ["TIMESCALE_URL"])
+        timeseries.ensure_schema()
+
     start_http_server(int(os.environ.get("WORKER_METRICS_PORT", "9108")))
     worker = Worker(broker, FrameProcessor(detect_defects, preprocess_image), monitor,
-                    consumer=os.environ.get("WORKER_NAME", f"worker-{os.getpid()}"), record=record, metrics=PrometheusMetrics())
+                    consumer=os.environ.get("WORKER_NAME", f"worker-{os.getpid()}"), record=record, metrics=PrometheusMetrics(),
+                    timeseries=timeseries)
     stop = {"flag": False}
     signal.signal(signal.SIGTERM, lambda *_: stop.update(flag=True))
     logger.info("worker_started", consumer=worker.consumer)

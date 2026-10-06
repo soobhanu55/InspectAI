@@ -81,12 +81,26 @@ def main() -> None:  # pragma: no cover - CLI wiring
     ap.add_argument("--fault", choices=FAULTS, default="none")
     ap.add_argument("--fault-after", type=int, default=None, help="frame index at which the fault starts")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--transport", choices=("redis", "mqtt"), default="redis",
+                    help="redis: write the stream directly; mqtt: publish like a camera gateway (MQTT_URL), a bridge forwards to Redis")
     args = ap.parse_args()
 
     paths = sorted(p for p in Path(args.source).iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"})
-    broker = RedisStreamBroker(redis.Redis.from_url(os.environ["REDIS_URL"]))
+    if args.transport == "mqtt":
+        from streaming.mqtt import MqttFramePublisher, connect, new_client
+
+        client = new_client(f"camera-{args.machine}")
+        connect(client, os.environ.get("MQTT_URL", "mqtt://localhost:1883"))
+        client.loop_start()
+        broker = MqttFramePublisher(client)
+    else:
+        broker = RedisStreamBroker(redis.Redis.from_url(os.environ["REDIS_URL"]))
     n = publish_stream(broker, make_frames(paths, args.count, args.machine, fault=args.fault,
                                            fault_after=args.fault_after, seed=args.seed), args.rate)
+    if args.transport == "mqtt":
+        broker.flush()  # QoS 1 publishes are acknowledged asynchronously: wait for the last one
+        client.loop_stop()
+        client.disconnect()
     print(f"published {n} frames")
 
 

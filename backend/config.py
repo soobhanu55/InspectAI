@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # Streaming — Redis Streams (free, self-hosted); empty disables the stream endpoints
     redis_url: str = ""
+    timescale_url: str = ""  # TimescaleDB for per-frame time-series metrics (optional)
 
     # MLOps — local SQLite, free
     sqlite_db: str = "./fertigungsai.db"

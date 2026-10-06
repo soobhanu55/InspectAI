@@ -11,6 +11,7 @@ services:
       - ENVIRONMENT=development
       - SQLITE_DB=/data/db/fertigungsai.db      # shared with the stream worker
       - REDIS_URL=${REDIS_URL:-}                # set to redis://redis:6379/0 to enable /api/stream/status
+      - TIMESCALE_URL=${TIMESCALE_URL:-}        # set to the timescaledb service URL to enable /api/mlops/timeseries
     volumes:
       - chroma_data:/data/chroma
       - db_data:/data/db
@@ -41,6 +42,46 @@ services:
       timeout: 3s
       retries: 10
 
+  # Edge broker: cameras and gateways speak MQTT; the bridge forwards their frames onto the Redis stream.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    profiles: ["stream"]
+    volumes: ["./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"]
+    ports: ["1883:1883"]
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/broker/uptime' -C 1 -W 3 > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mqtt-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["stream"]
+    command: ["python", "-m", "streaming.mqtt_bridge"]
+    depends_on:
+      redis: {condition: service_healthy}
+      mosquitto: {condition: service_healthy}
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MQTT_URL=mqtt://mosquitto:1883
+
+  # Time-series store for per-frame metrics (hypertable, continuous aggregate, retention policy).
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    profiles: ["stream"]
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=inspect
+    ports: ["5433:5432"]
+    volumes: ["ts_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inspect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   stream-worker:
     build:
       context: .
@@ -49,8 +90,10 @@ services:
     command: ["python", "-m", "streaming.worker"]
     depends_on:
       redis: {condition: service_healthy}
+      timescaledb: {condition: service_healthy}
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - TIMESCALE_URL=postgresql://postgres:postgres@timescaledb:5432/inspect
       - SQLITE_DB=/data/db/fertigungsai.db
       - BASELINE_FRAMES=150
       - STALL_SECONDS=30
@@ -59,7 +102,7 @@ services:
     volumes:
       - db_data:/data/db
 
-  # Simulated camera (docker compose --profile stream --profile demo up producer): replays test images,
+  # Simulated camera (docker compose --profile stream --profile demo up producer): replays test images over MQTT,
   # blurs the lens from frame 450 on so the monitoring has something to catch.
   producer:
     build:
@@ -67,14 +110,15 @@ services:
       dockerfile: Dockerfile
     profiles: ["demo"]
     command: ["python", "-m", "streaming.producer", "--source", "/data/images", "--count", "900", "--rate", "10",
-              "--fault", "blur", "--fault-after", "450"]
+              "--fault", "blur", "--fault-after", "450", "--transport", "mqtt"]
     depends_on:
-      redis: {condition: service_healthy}
+      mosquitto: {condition: service_healthy}
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      - MQTT_URL=mqtt://mosquitto:1883
     volumes:
       - ${NEUDET_TEST_IMAGES:-./finetune/data/test/images}:/data/images:ro
 
 volumes:
   db_data:
   chroma_data:
+  ts_data:

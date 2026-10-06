@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+import asyncio
+from typing import Literal
+
+from fastapi import APIRouter, Query
 from fastapi.responses import PlainTextResponse
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from config import get_settings
@@ -33,6 +36,22 @@ async def stream_status():
         except Exception as exc:  # the API stays up if Redis is down
             error = type(exc).__name__
     return {"configured": bool(redis_url), "lag": lag, "error": error, **stream_summary()}
+
+
+@router.get("/mlops/timeseries")
+async def timeseries(machine: str | None = None, minutes: int = Query(60, ge=1, le=43200),
+                     bucket: Literal["10 seconds", "1 minute", "5 minutes", "1 hour"] = "1 minute"):
+    """Defect rate and latency per time bucket from TimescaleDB (needs TIMESCALE_URL; empty list if unset)."""
+    url = get_settings().timescale_url
+    if not url:
+        return {"configured": False, "buckets": [], "error": None}
+    try:
+        from mlops.timeseries import query_series
+
+        rows = await asyncio.to_thread(query_series, url, machine, minutes, bucket)
+        return {"configured": True, "buckets": rows, "error": None}
+    except Exception as exc:  # the API stays up if the database is down
+        return {"configured": True, "buckets": [], "error": type(exc).__name__}
 
 
 @router.get("/log")

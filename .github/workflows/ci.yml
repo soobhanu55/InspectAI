@@ -10,12 +10,22 @@ jobs:
         ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      timescaledb:   # hypertable, continuous aggregate and retention policy are tested against the real extension
+        image: timescale/timescaledb:latest-pg16
+        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: inspect}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d inspect" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies for OpenCV/YOLO
+      - name: Install system dependencies for OpenCV/YOLO and an MQTT broker
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1 libglib2.0-0
+          sudo apt-get install -y libgl1 libglib2.0-0 mosquitto
+          sudo systemctl stop mosquitto
+          echo "listener 1883 127.0.0.1" > /tmp/mosquitto.conf
+          echo "allow_anonymous true" >> /tmp/mosquitto.conf
+          mosquitto -c /tmp/mosquitto.conf -d
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - run: pip install torch==2.5.1+cpu torchvision==0.20.1+cpu --index-url https://download.pytorch.org/whl/cpu
@@ -29,6 +39,8 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           REDIS_URL: redis://localhost:6379/0
+          MQTT_URL: mqtt://localhost:1883
+          TIMESCALE_URL: postgresql://postgres:postgres@localhost:5432/inspect
           PYTHONPATH: .
 
       - name: Publish Pytest Logs on Failure

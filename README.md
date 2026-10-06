@@ -13,8 +13,9 @@ Image Upload → FastAPI → YOLOv8n → LangGraph →
 [Cross-Encoder Reranker] →
 [Groq LLaMA-3.3-70B] → SSE Stream → React Frontend
 
-Camera frames → Redis Stream (consumer group) → worker(s): YOLOv8n → SQLite log + Prometheus
-                                                    └→ StreamMonitor: drift / fault / stall alerts → log, DB, webhook
+Camera / gateway → MQTT (Mosquitto, QoS 1) → bridge → Redis Stream (consumer group) → worker(s): YOLOv8n → SQLite log + Prometheus
+                                                                                          ├→ TimescaleDB hypertable (per-frame metrics)
+                                                                                          └→ StreamMonitor: drift / fault / stall alerts → log, DB, webhook
 ```
 
 ## Tech Choices Explained
@@ -37,12 +38,14 @@ Frames from a camera are published to a **Redis Stream**; one or more workers sh
 
 - **Delivery:** at-least-once. A frame is acknowledged only after it is processed and logged; a worker that crashes leaves its frames pending, and another worker takes them over (`XAUTOCLAIM`). Re-delivered frames are logged once (idempotent insert) and are not counted twice by the monitor. An undecodable image is dead-lettered and acknowledged so one bad frame cannot block the stream. The stream is capped, so if workers fall behind the oldest frames are dropped instead of memory growing.
 - **Monitor:** the first 150 frames are the baseline (they must come from a healthy line), then the last 100 frames are checked every 10: a Fisher exact test on the share of frames with a detection (up = defect surge, down = blind camera or dirty lens), a chi-square test on the defect-class mix, Kolmogorov-Smirnov tests on image brightness, contrast, sharpness and detection confidence, a latency limit (2x the baseline p95), and a stall check. An alert fires after two consecutive breaches, is not repeated while firing, and resolves after two clean checks. Alerts go to the log, the `alerts` table (`GET /api/mlops/alerts`), and an optional Slack-compatible webhook (`ALERT_WEBHOOK_URL`).
-- **API:** `GET /api/stream/status` (lag, frames processed, open alerts), `GET /api/mlops/alerts`, `GET /api/mlops/metrics`.
+- **MQTT at the edge:** cameras and gateways publish to `factory/<line>/<machine>/frames` (QoS 1) on a Mosquitto broker, the protocol factory equipment speaks; `streaming/mqtt_bridge.py` forwards each frame onto the Redis stream, re-subscribes after a broker restart and drops (and counts) malformed messages instead of stopping. Redis Streams stay on the plant side for consumer groups, acknowledgement and reclaim.
+- **TimescaleDB:** the worker also writes every frame's metrics to a hypertable (`frame_metrics`) with a unique index so a redelivered frame is stored once, a continuous aggregate (`frame_metrics_1m`, per-minute defects and latency per machine) and a 30-day retention policy. It is optional (`TIMESCALE_URL`), and an outage of the time-series store never blocks inspection (the failure is counted, the frame is still acknowledged). SQLite stays the system of record for inspections and alerts.
+- **API:** `GET /api/stream/status` (lag, frames processed, open alerts), `GET /api/mlops/alerts`, `GET /api/mlops/metrics`, `GET /api/mlops/timeseries?machine=M1&minutes=60&bucket=1 minute` (defect rate and p95 latency per bucket from TimescaleDB).
 
 ```bash
 # worker + Redis (compose profile "stream"); set REDIS_URL=redis://redis:6379/0 in .env for /api/stream/status
 docker compose --profile stream up -d
-# simulated camera: replays test images and blurs the lens from frame 450 on
+# simulated camera: replays test images over MQTT and blurs the lens from frame 450 on
 NEUDET_TEST_IMAGES=/path/to/NEU-DET/test/images docker compose --profile stream --profile demo up producer
 ```
 
@@ -135,4 +138,6 @@ This system falls under **Minimal Risk (Article 6)**. It acts as an internal qua
 
 ## Test coverage
 
-61 tests (CI, with a real Redis service), **94% line coverage** of the backend source packages `monitoring`, `streaming`, `mlops` and `api` (CI fails below 85%); the frontend has its own test job. The YOLO inference and LLM-agent modules are covered by integration-style tests and are not part of that percentage.
+82 tests in CI (against real Redis, Mosquitto and TimescaleDB services; 73 run with no service at all), **94% line coverage** (91% without the services) of the backend source packages `monitoring`, `streaming`, `mlops` and `api` (CI fails below 85%); the frontend has its own test job. The YOLO inference and LLM-agent modules are covered by integration-style tests and are not part of that percentage.
+
+**Verified end to end** (locally, real Mosquitto, Redis, TimescaleDB and the real fine-tuned YOLO): 120 frames published over MQTT arrived in SQLite (120 rows) and in TimescaleDB (per-minute buckets with defect rate and p95 latency). CI runs the MQTT and TimescaleDB integration tests against a real Mosquitto and a TimescaleDB service container; the unit tests need neither. Mosquitto here allows anonymous access for local use only; production needs authentication and TLS.
