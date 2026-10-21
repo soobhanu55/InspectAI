@@ -88,6 +88,10 @@ At 10 frames per second, 40 frames is 4 seconds. The real `Worker` (decode, YOLO
 
 Measured on a 180-image held-out test split: **mAP50 0.750** (up from 0.0 for the untouched stock model, which has no overlap with these classes by construction). Per-class AP50 ranges from 0.945 (patches) down to 0.449 (crazing), the weak class is disclosed, not averaged away. The simulated fallback is gone, an empty result now means the model genuinely found nothing.
 
+## Inference optimisation
+
+The defect detector exported to ONNX and quantised to INT8 (`finetune/optimize.py`, results in [`docs/inference_optimization.md`](docs/inference_optimization.md)): **3.3 MB instead of 12.1 MB, 3.0x faster than PyTorch on one CPU thread (5.3 ms vs 15.8 ms for the network), mAP50 0.688 to 0.679** on 120 held-out images, calibrated on 60 other ones. The ONNX export itself is lossless; a first INT8 attempt scored mAP 0.0 until I found it had zeroed every class score (quantising SiLU) and restricted quantisation to convolutions. Switch with `YOLO_MODEL=vision/weights/neu_det_yolov8n_int8.onnx`; the deployed default is still the PyTorch model. Measured on one laptop CPU, network time only.
+
 ## Demo
 
 Terminal recording of the real RAG retrieval evaluation running end to end:

@@ -36,7 +36,9 @@ def detect_defects(image: Image.Image) -> list[dict]:
     results = model(
         img_resized,
         conf=settings.yolo_conf_threshold,
-        verbose=False
+        verbose=False,
+        # the INT8 ONNX model runs on ONNX Runtime's CPU provider; without this the input goes to the GPU when one is present
+        device="cpu" if str(settings.yolo_model).endswith(".onnx") else None,
     )
 
     detections = []

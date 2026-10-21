@@ -12,6 +12,7 @@ sentence-transformers==3.3.1
 rank-bm25==0.2.2
 nltk==3.9.1
 ultralytics==8.3.0
+onnxruntime>=1.18  # CPU runtime for the INT8 model (YOLO_MODEL=vision/weights/neu_det_yolov8n_int8.onnx)
 Pillow==11.0.0
 prometheus-client==0.21.1
 structlog==24.4.0
