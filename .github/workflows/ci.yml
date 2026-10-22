@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   test-backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       redis:   # the broker tests also run against a real Redis (locally they use fakeredis and an in-memory broker)
         image: redis:7-alpine

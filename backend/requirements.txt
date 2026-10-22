@@ -27,3 +27,4 @@ scipy==1.14.1
 fakeredis==2.39.0
 pytest==8.3.4
 pytest-asyncio==0.24.0
+pyarrow==25.0.1  # pyarrow 26 requires NumPy 2 while langchain pins numpy<2 (the CI build broke on it); 25.0.1 is the last version that imports with numpy 1.26
