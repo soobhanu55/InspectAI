@@ -1,0 +1,15 @@
+name: inspectai_warehouse
+version: "1.0.0"
+config-version: 2
+profile: inspectai
+model-paths: ["models"]
+test-paths: ["tests"]
+vars:
+  # the star-schema CSVs written by powerbi/export_powerbi.py (a one-day sample from the real detector is committed in powerbi/data)
+  data_dir: "../powerbi/data"
+models:
+  inspectai_warehouse:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

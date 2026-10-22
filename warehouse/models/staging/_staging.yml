@@ -1,0 +1,36 @@
+version: 2
+models:
+  - name: stg_inspection
+    columns:
+      - name: inspection_id
+        tests: [unique, not_null]
+      - name: machine_key
+        tests:
+          - not_null
+          - relationships: {to: ref('stg_machine'), field: machine_key}
+      - name: defect_key
+        tests:
+          - not_null
+          - relationships: {to: ref('stg_defect_class'), field: defect_key}
+      - name: hour
+        tests: [not_null]
+  - name: stg_alert
+    columns:
+      - name: alert_id
+        tests: [unique, not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              values: [firing, resolved]
+      - name: severity
+        tests:
+          - accepted_values:
+              values: [info, warning, critical]
+  - name: stg_machine
+    columns:
+      - name: machine_key
+        tests: [unique, not_null]
+  - name: stg_defect_class
+    columns:
+      - name: defect_key
+        tests: [unique, not_null]

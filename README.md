@@ -160,6 +160,10 @@ This system falls under **Minimal Risk (Article 6)**. It acts as an internal qua
 
 **Verified end to end** (locally, real Mosquitto, Redis, TimescaleDB and the real fine-tuned YOLO): 120 frames published over MQTT arrived in SQLite (120 rows) and in TimescaleDB (per-minute buckets with defect rate and p95 latency). CI runs the MQTT and TimescaleDB integration tests against a real Mosquitto and a TimescaleDB service container; the unit tests need neither. Mosquitto here allows anonymous access for local use only; production needs authentication and TLS.
 
+## Warehouse (dbt + DuckDB)
+
+`warehouse/` models the inspection log with dbt on DuckDB: staging views, three marts (machine by hour, machine by day, alert summary) and 20 tests, built in CI. Five of the tests check the data itself, including that the simulated lens blur shows up in the detection rate; the marts reproduce the Power BI sample's headline numbers (M2: 89.4% detected during the blur vs 97.2% outside it) from SQL alone. See [`warehouse/README.md`](warehouse/README.md).
+
 ## Power BI
 
 `powerbi/` holds a star-schema export of the inspection log (`export_powerbi.py`, tested), a sample day through the real detector and monitor, Power Query loaders, DAX measures (detection rate, p95 latency, defect share, alert durations) and a build guide for a four-page quality report. A `.pbix` file cannot be generated outside Power BI Desktop, so the report itself is built from that guide in about 30 minutes; see [`powerbi/README.md`](powerbi/README.md).

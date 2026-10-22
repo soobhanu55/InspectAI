@@ -1,0 +1,7 @@
+inspectai:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: inspectai.duckdb   # a local file, no server; ignored by git
+      threads: 4

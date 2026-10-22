@@ -46,3 +46,8 @@ coverage.xml
 # ONNX variants written by finetune/optimize.py (only the INT8 model that ships is kept)
 backend/vision/weights/*.onnx
 !backend/vision/weights/neu_det_yolov8n_int8.onnx
+
+# dbt warehouse (built locally and in CI)
+warehouse/inspectai.duckdb
+warehouse/target/
+warehouse/logs/

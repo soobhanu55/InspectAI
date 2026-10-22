@@ -1,0 +1,8 @@
+version: 2
+models:
+  - name: mart_machine_hour
+    description: Per machine and hour of day - frames, detection rate, mean confidence, p95 latency.
+  - name: mart_machine_day
+    description: Per machine - detection rate for the day and inside and outside the simulated blur window.
+  - name: mart_alert_summary
+    description: Per alert name - events fired and resolved, and the time span they cover.
