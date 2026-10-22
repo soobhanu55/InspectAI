@@ -75,7 +75,7 @@ jobs:
   kubernetes:
     # Deploys the whole stack to a throwaway kind cluster and pushes frames through it:
     # camera job -> MQTT (Mosquitto) -> bridge -> Redis Stream -> worker (YOLO) -> TimescaleDB -> API.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
